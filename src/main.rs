@@ -17,7 +17,24 @@ struct CliParser {
 enum Subcommands {
     #[command(name = "show")]
     #[command(about = "Show the citation info.")]
-    Show {},
+    Show {
+        #[arg(
+            short = 'p',
+            long = "pages",
+            default_value = "1",
+            conflicts_with = "all",
+            help = "Number of Google Scholar pages to show, setting to 0 will only show the author level's info."
+        )]
+        pages: u8,
+
+        #[arg(
+            short = 'a',
+            long = "all",
+            conflicts_with = "pages",
+            default_value = "false"
+        )]
+        all: bool,
+    },
     #[command(name = "log")]
     #[command(about = "Log the current info as a checkpoint")]
     LogCheckpoint {},
@@ -27,8 +44,8 @@ fn main() -> ExitCode {
     let cli_args = CliParser::parse();
 
     match cli_args.subcmd {
-        Some(Subcommands::Show {}) => {
-            if let Err(e) = show::show_func() {
+        Some(Subcommands::Show { pages, all }) => {
+            if let Err(e) = show::show_func(pages, all) {
                 eprintln!("{}", format!("{}", e).red());
                 ExitCode::FAILURE
             } else {
@@ -38,8 +55,6 @@ fn main() -> ExitCode {
         Some(Subcommands::LogCheckpoint {}) => {
             todo!()
         }
-        None => {
-            ExitCode::SUCCESS
-        }
+        None => ExitCode::SUCCESS,
     }
 }
