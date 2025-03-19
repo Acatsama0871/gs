@@ -1,2 +1,2 @@
 test-show:
-    source .env && cargo run -- show -a
+    source .env && cargo run -- show -p 1

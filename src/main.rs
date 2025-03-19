@@ -22,7 +22,8 @@ enum Subcommands {
             short = 'p',
             long = "pages",
             default_value = "1",
-            conflicts_with = "all"
+            conflicts_with = "all",
+            help = "Number of Google Scholar pages to show, setting to 0 will only show the author level's info."
         )]
         pages: u8,
 

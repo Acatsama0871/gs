@@ -30,7 +30,7 @@ pub(crate) struct Author {
     pub(crate) h_index: usize,
 }
 
-#[derive(Deserialize, Debug, Clone, Serialize)]
+#[derive(Deserialize, Debug, Clone, Serialize, Default)]
 pub(crate) struct ArticlesCiteInfo {
     #[serde(rename = "value")]
     pub(crate) citations: Option<usize>,

@@ -36,7 +36,7 @@ pub fn get_n_author_pages(pages: u8, all: bool) -> Result<GoogleScholarResponse>
                 break;
             }
         }
-        
+
         let response = client
             .get(&next_url)
             .query(&[
