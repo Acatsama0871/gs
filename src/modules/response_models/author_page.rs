@@ -43,6 +43,7 @@ pub(crate) struct Article {
     pub(crate) title: String,
     pub(crate) link: String,
     pub(crate) authors: String,
+    pub(crate) citation_id: String,
     #[serde(deserialize_with = "from_str_to_usize_or_default")]
     pub(crate) year: usize,
     #[serde(rename = "cited_by")]

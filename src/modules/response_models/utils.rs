@@ -5,7 +5,7 @@ use std::env;
 
 const GOOGLE_SCHOLAR_AUTHOR_ENDPOINT: &str = "https://serpapi.com/search";
 
-pub fn get_first_n_page(pages: u8, all: bool) -> Result<GoogleScholarResponse> {
+pub fn get_n_author_pages(pages: u8, all: bool) -> Result<GoogleScholarResponse> {
     // get env variables
     let author_id =
         env::var("GOOGLE_SCHOLAR_ID").context("Can not found GOOGLE_SCHOLAR_ID env variable.")?;
@@ -36,7 +36,7 @@ pub fn get_first_n_page(pages: u8, all: bool) -> Result<GoogleScholarResponse> {
                 break;
             }
         }
-
+        
         let response = client
             .get(&next_url)
             .query(&[
