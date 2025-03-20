@@ -1,5 +1,5 @@
 mod modules;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, builder::EnumValueParser};
 use colored::Colorize;
 use modules::show;
 use std::process::ExitCode;
@@ -22,30 +22,51 @@ enum Subcommands {
             short = 'p',
             long = "pages",
             default_value = "1",
-            conflicts_with = "all",
-            help = "Number of Google Scholar pages to show, setting to 0 will only show the author level's info."
+            help = "Control the number of articles to show on each Google Scholar page, setting to -1 will show all pages, setting to 0 will suppress the output."
         )]
-        pages: u8,
+        pages: i16,
 
         #[arg(
-            short = 'a',
-            long = "all",
-            conflicts_with = "pages",
-            default_value = "false"
+            short = 's',
+            long = "suppress-author",
+            default_value = "false",
+            help = "Whether to suppress the author's info"
         )]
-        all: bool,
+        suppress_author: bool,
+
+        #[arg(
+            short = 'f',
+            long = "find-author",
+            help = "Find the author by citations id or name"
+        )]
+        find_author: Option<String>,
+
+        #[arg(
+                short = 'o',
+                long = "output-format",
+                default_value = "cli-table",
+                help = "Output format for the citation data",
+                value_parser =EnumValueParser::<show::OutputFormat>::new()
+            )]
+        output_format: show::OutputFormat,
     },
     #[command(name = "log")]
     #[command(about = "Log the current info as a checkpoint")]
     LogCheckpoint {},
 }
 
-fn main() -> ExitCode {
+#[tokio::main]
+async fn main() -> ExitCode {
     let cli_args = CliParser::parse();
 
     match cli_args.subcmd {
-        Some(Subcommands::Show { pages, all }) => {
-            if let Err(e) = show::show_func(pages, all) {
+        Some(Subcommands::Show {
+            pages,
+            suppress_author,
+            find_author,
+            output_format
+        }) => {
+            if let Err(e) = show::show_func(pages, suppress_author, find_author, output_format).await {
                 eprintln!("{}", format!("{}", e).red());
                 ExitCode::FAILURE
             } else {

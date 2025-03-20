@@ -1,14 +1,12 @@
 use crate::modules::response_models::author_page::GoogleScholarResponse;
 use anyhow::{Context, Error, Result};
-use reqwest::blocking::Client;
+use reqwest::Client;
 use std::env;
 
 const GOOGLE_SCHOLAR_AUTHOR_ENDPOINT: &str = "https://serpapi.com/search";
 
-pub fn get_n_author_pages(pages: u8, all: bool) -> Result<GoogleScholarResponse> {
+pub async fn get_n_author_pages(pages: i16, author_id: &str) -> Result<GoogleScholarResponse> {
     // get env variables
-    let author_id =
-        env::var("GOOGLE_SCHOLAR_ID").context("Can not found GOOGLE_SCHOLAR_ID env variable.")?;
     let serp_api_key =
         env::var("SERP_API_KEY").context("Can not found SERP_API_KEY env variable.")?;
 
@@ -18,23 +16,23 @@ pub fn get_n_author_pages(pages: u8, all: bool) -> Result<GoogleScholarResponse>
         .get(GOOGLE_SCHOLAR_AUTHOR_ENDPOINT)
         .query(&[
             ("engine", "google_scholar_author"),
-            ("author_id", &author_id),
+            ("author_id", author_id),
             ("api_key", &serp_api_key),
             ("sort", "pubdate"),
         ])
-        .send()?
+        .send()
+        .await?
         .error_for_status()?
-        .json::<GoogleScholarResponse>()?;
+        .json::<GoogleScholarResponse>()
+        .await?;
 
     let mut all_responses = vec![cur_response.clone()];
     let mut counter = 1;
 
     while let Some(next_url) = cur_response.pagination.next.clone() {
         counter += 1;
-        if !all {
-            if counter > pages {
-                break;
-            }
+        if pages != -1 && counter > pages {
+            break;
         }
 
         let response = client
@@ -43,10 +41,11 @@ pub fn get_n_author_pages(pages: u8, all: bool) -> Result<GoogleScholarResponse>
                 ("api_key", &serp_api_key),
                 ("sort", &String::from("pubdate")),
             ])
-            .send()?
+            .send()
+            .await?
             .error_for_status()?;
 
-        let response_text = response.text()?;
+        let response_text = response.text().await?;
 
         match serde_json::from_str::<GoogleScholarResponse>(&response_text) {
             Ok(parsed_response) => {
