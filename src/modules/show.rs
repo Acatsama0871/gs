@@ -3,19 +3,26 @@ use crate::modules::response_models::{
 };
 use anyhow::Context;
 use anyhow::Result;
+use clap::ValueEnum;
 use cli_table::{format::Justify, print_stdout, Cell, Style, Table, TableStruct};
 use colored::Colorize;
+use serde_json;
 use std::env;
-use clap::ValueEnum;
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum OutputFormat {
     #[value(name = "cli-table")]
     CliTable,
+    #[value(name = "json")]
     Json,
 }
 
-pub async fn show_func(pages: i16, suppress_author: bool, find_author: Option<String>, output_format: OutputFormat) -> Result<()> {
+pub async fn show_func(
+    pages: i16,
+    suppress_author: bool,
+    find_author: Option<String>,
+    output_format: OutputFormat,
+) -> Result<()> {
     let response = match find_author {
         None => {
             let author_id = env::var("GOOGLE_SCHOLAR_ID")
@@ -26,8 +33,15 @@ pub async fn show_func(pages: i16, suppress_author: bool, find_author: Option<St
     };
 
     if !suppress_author {
-        let author_info = author_level_info_table(&response);
-        print_stdout(author_info)?;
+        match output_format {
+            OutputFormat::CliTable => {
+                let author_info = author_level_info_table(&response);
+                print_stdout(author_info)?;
+            }
+            OutputFormat::Json => {
+                println!("{}", serde_json::to_string_pretty(&response.author)?);
+            }
+        }
     }
 
     // when pages == 0, suppress all article output
@@ -35,8 +49,15 @@ pub async fn show_func(pages: i16, suppress_author: bool, find_author: Option<St
         return Ok(());
     }
 
-    let article_info = article_info_table(&response);
-    print_stdout(article_info)?;
+    match output_format {
+        OutputFormat::CliTable => {
+            let article_info = article_info_table(&response);
+            print_stdout(article_info)?;
+        }
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(&response.articles)?);
+        }
+    }
 
     Ok(())
 }

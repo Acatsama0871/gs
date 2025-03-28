@@ -1,5 +1,5 @@
 mod modules;
-use clap::{Parser, Subcommand, builder::EnumValueParser};
+use clap::{builder::EnumValueParser, Parser, Subcommand};
 use colored::Colorize;
 use modules::show;
 use std::process::ExitCode;
@@ -64,9 +64,11 @@ async fn main() -> ExitCode {
             pages,
             suppress_author,
             find_author,
-            output_format
+            output_format,
         }) => {
-            if let Err(e) = show::show_func(pages, suppress_author, find_author, output_format).await {
+            if let Err(e) =
+                show::show_func(pages, suppress_author, find_author, output_format).await
+            {
                 eprintln!("{}", format!("{}", e).red());
                 ExitCode::FAILURE
             } else {
