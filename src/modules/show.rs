@@ -1,22 +1,63 @@
 use crate::modules::response_models::{
     author_page::GoogleScholarResponse, utils::get_n_author_pages,
 };
+use anyhow::Context;
 use anyhow::Result;
+use clap::ValueEnum;
 use cli_table::{format::Justify, print_stdout, Cell, Style, Table, TableStruct};
 use colored::Colorize;
+use serde_json;
+use std::env;
 
-pub fn show_func(pages: u8, all: bool) -> Result<()> {
-    let response = get_n_author_pages(pages, all)?;
-    let author_info = author_level_info_table(&response);
-    print_stdout(author_info)?;
+#[derive(Debug, Clone, ValueEnum)]
+pub enum OutputFormat {
+    #[value(name = "cli-table")]
+    CliTable,
+    #[value(name = "json")]
+    Json,
+}
 
-    // when pages == 0, only show author level info
+pub async fn show_func(
+    pages: i16,
+    suppress_author: bool,
+    find_author: Option<String>,
+    output_format: OutputFormat,
+) -> Result<()> {
+    let response = match find_author {
+        None => {
+            let author_id = env::var("GOOGLE_SCHOLAR_ID")
+                .context("Can not found GOOGLE_SCHOLAR_ID env variable.")?;
+            get_n_author_pages(pages, &author_id).await?
+        }
+        Some(_author_id) => todo!("Finding author is not yet implemented."), // TODO: support the author finding later
+    };
+
+    if !suppress_author {
+        match output_format {
+            OutputFormat::CliTable => {
+                let author_info = author_level_info_table(&response);
+                print_stdout(author_info)?;
+            }
+            OutputFormat::Json => {
+                println!("{}", serde_json::to_string_pretty(&response.author)?);
+            }
+        }
+    }
+
+    // when pages == 0, suppress all article output
     if pages == 0 {
         return Ok(());
     }
 
-    let article_info = article_info_table(&response);
-    print_stdout(article_info)?;
+    match output_format {
+        OutputFormat::CliTable => {
+            let article_info = article_info_table(&response);
+            print_stdout(article_info)?;
+        }
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(&response.articles)?);
+        }
+    }
 
     Ok(())
 }
@@ -24,7 +65,10 @@ pub fn show_func(pages: u8, all: bool) -> Result<()> {
 fn author_level_info_table(response: &GoogleScholarResponse) -> TableStruct {
     let author_info = &response.author;
     let author_level_info_cells = vec![
-        vec!["Name".green().cell().bold(true), author_info.name.clone().cell()],
+        vec![
+            "Name".green().cell().bold(true),
+            author_info.name.clone().cell(),
+        ],
         vec![
             "Author Id".green().cell().bold(true),
             author_info.author_id.clone().cell(),
@@ -52,11 +96,7 @@ fn article_info_table(response: &GoogleScholarResponse) -> TableStruct {
             Some(cur_cite_by) => article_info_cells.push(vec![
                 cur_article.title.green().cell().bold(true),
                 cur_article.year.cell().bold(false),
-                cur_cite_by
-                    .citations
-                    .unwrap_or_else(|| 0)
-                    .cell()
-                    .bold(false),
+                cur_cite_by.citations.unwrap_or(0).cell().bold(false),
             ]),
             None => {
                 continue;
